@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSC Cali | Auditoría Institucional de Complejidad</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #1e293b; scroll-behavior: smooth; }
+        
+        /* Paleta Institucional: Azul Marino (#1e3a8a), Verde (#16a34a), Blanco (#ffffff) */
+        .glass { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .bg-navy { background-color: #1e3a8a; }
+        .text-navy { color: #1e3a8a; }
+        .border-navy { border-color: #1e3a8a; }
+        .bg-green-inst { background-color: #16a34a; }
+        .text-green-inst { color: #16a34a; }
+        
+        .input-tech { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; border-radius: 6px; width: 100%; color: #1e293b; outline: none; font-size: 0.85rem; transition: all 0.3s;}
+        .input-select { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; border-radius: 6px; width: 100%; color: #1e293b; outline: none; appearance: none; cursor: pointer; font-size: 0.85rem; transition: all 0.3s;}
+        .input-select:focus, .input-tech:focus { border-color: #1e3a8a; box-shadow: 0 0 0 2px rgba(30,58,138,0.1); }
+        
+        .select-wrapper { position: relative; }
+        .select-wrapper::after { content: '\f0d7'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%); color: #64748b; pointer-events: none; }
+        
+        .section-title { @apply font-black text-[12px] uppercase tracking-[0.1em] mb-4 border-b pb-2 flex items-center gap-2; }
+        .check-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.5rem; }
+        .check-item { @apply flex items-start gap-3 p-2 rounded-lg border border-gray-200 bg-gray-50 hover:bg-blue-50 transition-all cursor-pointer; }
+        .check-text { @apply text-[10px] text-gray-700 leading-tight font-semibold; }
+        input[type="checkbox"] { @apply w-4 h-4 mt-0.5 rounded border-gray-300 text-blue-800 focus:ring-blue-800 flex-shrink-0; cursor: pointer; }
+        details summary::-webkit-details-marker { display: none; }
+    </style>
+</head>
+<body class="p-4 md:p-6">
+
+    <div id="contenedor-pdf" class="max-w-screen-2xl mx-auto">
+        <header class="bg-navy text-white p-8 rounded-xl shadow-lg mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="bg-green-inst text-[10px] font-black px-3 py-1 rounded-full uppercase">Sistema Oficial de Auditoría</span>
+                </div>
+                <h1 class="text-4xl font-extrabold tracking-tighter">TRAUMA SCORE <span class="text-green-400">CALI</span></h1>
+                <p class="text-blue-200 text-sm mt-1">Instrumento de Valoración y Clasificación de Complejidad Institucional.</p>
+            </div>
+            </header>
+
+        <form id="auditForm" class="space-y-6">
+            
+            <section class="glass p-6 border-t-4 border-navy">
+                <h2 class="section-title text-navy border-gray-200"><i class="fa-solid fa-hospital"></i> 1. Capacidad Operativa, Flujo e Infraestructura</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-4">
+                    <div class="lg:col-span-2">
+                        <label class="text-[10px] text-gray-500 font-bold uppercase block mb-1">Institución</label>
+                        <input type="text" id="institucion" required class="input-tech" placeholder="Nombre de la Institución">
+                    </div>
+                    <div class="lg:col-span-2">
+                        <label class="text-[10px] text-gray-500 font-bold uppercase block mb-1">Admisiones Trauma (>6h obs) al año</label>
+                        <input type="number" id="admisiones_6h" class="input-tech" placeholder="Promedio">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold uppercase block mb-1">Complejidad Actual</label>
+                        <div class="select-wrapper">
+                            <select id="complejidad_actual" class="input-select">
+                                <option value="Baja Complejidad">Baja Complejidad</option>
+                                <option value="Mediana Complejidad">Mediana Complejidad</option>
+                                <option value="Alta Complejidad">Alta Complejidad</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold uppercase block mb-1">Zona</label>
+                        <div class="select-wrapper">
+                            <select id="zona" class="input-select">
+                                <option value="Urbano">Urbano</option>
+                                <option value="Rural">Rural</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-gray-200 pt-4">
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold uppercase block mb-1">Camas de Hospitalización</label>
+                        <input type="number" id="camas_hospitalizacion" class="input-tech" placeholder="Total habilitadas">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold uppercase block mb-1">Camas Obs. Urgencias</label>
+                        <input type="number" id="camas_obs_urgencias" class="input-tech" placeholder="Total habilitadas">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-navy font-bold uppercase block mb-1">Camas UCI Adultos</label>
+                        <input type="number" id="val_uci" class="input-tech border-navy bg-blue-50" placeholder="Total habilitadas">
+                    </div>
+                </div>
+            </section>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <section class="glass p-6 border-t-4 border-navy">
+                    <h2 class="section-title text-navy border-gray-200"><i class="fa-solid fa-user-doctor"></i> 2. Talento Humano (Por Turno)</h2>
+                    <p class="text-[10px] text-gray-500 mb-3 italic">*La ausencia de los especialistas listados constituye barrera para Alta Complejidad.</p>
+                    
+                    <div class="grid grid-cols-2 gap-3 mb-6 bg-gray-100 p-4 rounded-lg border border-gray-200">
+                        <div><label class="text-[9px] text-gray-600 font-bold uppercase">Médicos Generales</label><input type="number" id="medicos_generales" class="input-tech py-1" placeholder="Cant."></div>
+                        <div><label class="text-[9px] text-gray-600 font-bold uppercase">Enfermeros (Jefes)</label><input type="number" id="enfermeros_jefes" class="input-tech py-1" placeholder="Cant."></div>
+                        <div><label class="text-[9px] text-gray-600 font-bold uppercase">Auxiliares Enfermería</label><input type="number" id="auxiliares_enfermeria" class="input-tech py-1" placeholder="Cant."></div>
+                        <div><label class="text-[9px] text-gray-600 font-bold uppercase">Camilleros</label><input type="number" id="camilleros" class="input-tech py-1" placeholder="Cant."></div>
+                        <div class="col-span-2"><label class="text-[9px] text-gray-600 font-bold uppercase">Terapeutas Respiratorios</label><input type="number" id="terapeutas_respiratorios" class="input-tech py-1" placeholder="Cant. por turno"></div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Emergenciólogo</span><div class="select-wrapper"><select id="emergenciologo" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                        <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Cirugía Maxilofacial</span><div class="select-wrapper"><select id="cx_maxilo" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                        <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Cirugía Vascular</span><div class="select-wrapper"><select id="cx_vascular" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                        <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-navy">Cirujano General</span><div class="select-wrapper"><select id="cx_general" class="input-select py-1 border-navy"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                        <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-navy">Neurocirujano</span><div class="select-wrapper"><select id="neurocirujano" class="input-select py-1 border-navy"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                        <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-navy">Cirujano de Trauma</span><div class="select-wrapper"><select id="cx_trauma" class="input-select py-1 border-navy"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                        <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Anestesiólogo</span><div class="select-wrapper"><select id="anestesiologo" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                    </div>
+                </section>
+
+                <div class="space-y-6">
+                    <section class="glass p-6 border-t-4 border-green-inst">
+                        <h2 class="section-title text-green-inst border-gray-200"><i class="fa-solid fa-sitemap"></i> 3. Programa de Trauma Institucional</h2>
+                        <div class="space-y-3">
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Programa de Calidad</span><div class="select-wrapper"><select id="prog_calidad" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Educación Continua</span><div class="select-wrapper"><select id="prog_educacion" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Programa de Investigación</span><div class="select-wrapper"><select id="prog_investigacion" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Prevención en Trauma</span><div class="select-wrapper"><select id="prevencion_trauma" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Modelo de Atención</span><div class="select-wrapper"><select id="modelo_atencion" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-red-600 bg-red-50 p-1 rounded">Registro de Trauma (Excluyente)</span><div class="select-wrapper"><select id="registro_trauma" class="input-select py-1 border-red-300"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                        </div>
+                    </section>
+
+                    <section class="glass p-6 border-t-4 border-navy">
+                        <h2 class="section-title text-navy border-gray-200"><i class="fa-solid fa-book-medical"></i> 4. Protocolos Institucionales</h2>
+                        <div class="space-y-3">
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-navy">Control de Daños (DCS)</span><div class="select-wrapper"><select id="protocolo_dcs" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Código Trauma</span><div class="select-wrapper"><select id="h_cod" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Transfusión Masiva (PTM)</span><div class="select-wrapper"><select id="ptm" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Atención Inicial Quemado</span><div class="select-wrapper"><select id="quemado_inicial" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="space-y-6">
+                    <section class="glass p-6 border-t-4 border-navy">
+                        <h2 class="section-title text-navy border-gray-200"><i class="fa-solid fa-stethoscope"></i> 5. Servicios Complementarios</h2>
+                        <div class="space-y-3">
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Fisiatría (Horario Oficina)</span><div class="select-wrapper"><select id="fisiatria" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Radiología Intervencionista</span><div class="select-wrapper"><select id="rad_interv" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Fibrobroncoscopia</span><div class="select-wrapper"><select id="fibrobroncoscopia" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Endoscopia</span><div class="select-wrapper"><select id="endoscopio" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Servicio de Rehabilitación</span><div class="select-wrapper"><select id="rehabilitacion" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                        </div>
+                    </section>
+
+                    <section class="glass p-6 border-t-4 border-navy">
+                        <h2 class="section-title text-navy border-gray-200"><i class="fa-solid fa-kit-medical"></i> 6. Soporte Transfusional y Quirúrgico</h2>
+                        <div class="space-y-3">
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Servicio Transfusional</span><div class="select-wrapper"><select id="servicio_transfusional" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Banco de Sangre</span><div class="select-wrapper"><select id="banco_sangre" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Transfusión < 2h (Plaq/Plas)</span><div class="select-wrapper"><select id="transfusion_2h" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <hr class="border-gray-200">
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-navy">Esternotomía Urgencias</span><div class="select-wrapper"><select id="esternotomia" class="input-select py-1 border-navy"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-navy">Laparotomía</span><div class="select-wrapper"><select id="laparotomia" class="input-select py-1 border-navy"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">REBOA (Recomendación)</span><div class="select-wrapper"><select id="reboa" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Salvador de Células</span><div class="select-wrapper"><select id="salvador_celulas" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Embolización / Hemodinamia</span><div class="select-wrapper"><select id="embolizacion" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">PIC y Craneotomía</span><div class="select-wrapper"><select id="pic_craneotomia" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                            <div class="grid grid-cols-2 items-center gap-2"><span class="text-[11px] font-bold text-gray-700">Servicio Gran Quemado</span><div class="select-wrapper"><select id="gran_quemado" class="input-select py-1"><option value="0">No</option><option value="1">Sí</option></select></div></div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <section class="space-y-3">
+                <h3 class="text-[12px] font-black text-navy uppercase tracking-widest px-2 mt-8 mb-4 border-b border-gray-300 pb-2">LISTA DE VERIFICACIÓN DE INSUMOS Y EQUIPOS (Inventario Completo)</h3>
+
+                <details class="glass group">
+                    <summary class="p-4 cursor-pointer flex justify-between items-center bg-gray-50 rounded-t-xl"><span class="font-bold text-xs uppercase text-navy"><i class="fa-solid fa-lungs mr-2"></i> Vía Aérea</span><i class="fa-solid fa-chevron-down text-xs group-open:rotate-180 transition-all text-gray-500"></i></summary>
+                    <div class="p-4 pt-0 check-grid border-t border-gray-200 mt-2">
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Sistema de aspiración</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Sondas aspiración desde 6 Fr</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Cánula Yankauer punta rígida</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Laringoscopio 3 palas curvas/rectas</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Tubos endotraqueales balón (6-9mm)</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Mandriles/estiletes/Bougie Intubación</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Máscara Laríngea (3 a 5)</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Intercambiador de tubo</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Bolsa-válvula-máscara con reservorio</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Cánulas orofaríngeas Guedel (0-5)</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Pinza de Magill</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="3"><span class="check-text">Capnografía cuali/cuantitativa</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Cilindros aluminio O2 válvula reductora</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Bajalengua</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Mascarillas Venturi con/sin reservorio</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Máscara no reinhalación reservorio</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Suministro oxígeno: Pared/central</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Sondas nasogástricas desde 4Fr</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Cánulas traqueostomía 3-10mm</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="4"><span class="check-text">Equipo cricotiroideotomía quirúrgica</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Cánulas nasales (neonatal y adultos)</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="4"><span class="check-text">Videolaringoscopio</span></label>
+                    </div>
+                </details>
+
+                <details class="glass group">
+                    <summary class="p-4 cursor-pointer flex justify-between items-center bg-gray-50 rounded-t-xl"><span class="font-bold text-xs uppercase text-navy"><i class="fa-solid fa-wind mr-2"></i> Respiración</span><i class="fa-solid fa-chevron-down text-xs group-open:rotate-180 transition-all text-gray-500"></i></summary>
+                    <div class="p-4 pt-0 check-grid border-t border-gray-200 mt-2">
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Estetoscopio</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Tubos torácicos No. 24-32</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Sistema de Drenaje Pleural</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Oximetría de pulso</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="3"><span class="check-text">Medición gases sangre (arterial/venosa)</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Válvula de Heimlich comercial/artesanal</span></label>
+                        <label class="check-item"><input type="checkbox" id="ventilador_transporte_inv" class="sc" data-pts="3"><span class="check-text">Ventilador mecánico traslado intrahosp.</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="4"><span class="check-text">Ventilador mecánico invasivo/no invasivo</span></label>
+                    </div>
+                </details>
+
+                <details class="glass group">
+                    <summary class="p-4 cursor-pointer flex justify-between items-center bg-gray-50 rounded-t-xl"><span class="font-bold text-xs uppercase text-navy"><i class="fa-solid fa-heart-pulse mr-2"></i> Circulación, Monitoreo y Fluidos</span><i class="fa-solid fa-chevron-down text-xs group-open:rotate-180 transition-all text-gray-500"></i></summary>
+                    <div class="p-4 pt-0 check-grid border-t border-gray-200 mt-2">
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Reloj carro de paro</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Tabla reanimación</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="5"><span class="check-text">Ecógrafo guiar reanimación/canalizaciones</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">PA no invasiva / Manguito PA</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Gasas y vendas</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Torniquete arterial (situaciones extremas)</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Cristaloides</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Perfusión intravenosa (agujas y catéteres)</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="3"><span class="check-text">Aguja intraósea (o equivalente)</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Catéter arterial (4 french)</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Catéteres de Alto Flujo</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Catéteres Arrow canulación radial</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Catéter urinario (desde 6Fr)</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="4"><span class="check-text">Monitorización cardíaca / Desfibrilador</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Monitor Signos Vitales</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Lab Hb, Hto, Electrolitos, Lactato, Gases</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Termómetro digital y Esofágico</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="4"><span class="check-text">Calentadores de fluidos (Tipo Level I)</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Microondas</span></label>
+                        <label class="check-item"><input type="checkbox" id="manta_termica_inv" class="sc" data-pts="2"><span class="check-text">Calentadores pacientes (Blanketrol/Mantas)</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Bombas de infusión</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Atriles para líquidos y bombas</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Soporte para brazos</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Colchoneta antiescaras</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Pandebonos para la cabeza</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Monitor de relajación muscular</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Norepinefrina / Vasopresina / Epinefrina</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Albumina / Calcio</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Relajantes musculares / Hipnoticos</span></label>
+                    </div>
+                </details>
+
+                <details class="glass group">
+                    <summary class="p-4 cursor-pointer flex justify-between items-center bg-gray-50 rounded-t-xl"><span class="font-bold text-xs uppercase text-navy"><i class="fa-solid fa-head-side-medical mr-2"></i> Trauma Cráneo y Cuello</span><i class="fa-solid fa-chevron-down text-xs group-open:rotate-180 transition-all text-gray-500"></i></summary>
+                    <div class="p-4 pt-0 check-grid border-t border-gray-200 mt-2">
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Inmovilizador cervical</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Radiografía convencional</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Medios de contraste</span></label>
+                        <label class="check-item"><input type="checkbox" id="tac_inv" class="sc" data-pts="5"><span class="check-text">Tomografía Axial Computada (TAC)</span></label>
+                    </div>
+                </details>
+
+                <details class="glass group">
+                    <summary class="p-4 cursor-pointer flex justify-between items-center bg-gray-50 rounded-t-xl"><span class="font-bold text-xs uppercase text-navy"><i class="fa-solid fa-person-dots-from-line mr-2"></i> Trauma Abdomen y Tórax</span><i class="fa-solid fa-chevron-down text-xs group-open:rotate-180 transition-all text-gray-500"></i></summary>
+                    <div class="p-4 pt-0 check-grid border-t border-gray-200 mt-2">
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="3"><span class="check-text">Ecografía</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Laparoscopía</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Sutura mecánica intestinal / bronquios</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Prótesis vasculares / parietales (mallas)</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Sistemas de presión negativa</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Catéteres drenaje percutáneo</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Medición presión intrabdominal (PIA)</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Equipo nefrostomía / cistostomía</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Catéter doble jota</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="3"><span class="check-text">Shunt vascular abdominal / temporal</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Hemostáticos cirugía / Hiladillas</span></label>
+                        <label class="check-item"><input type="checkbox" id="toracotomia_inv" class="sc" data-pts="5"><span class="check-text">Equipo toracotomía de emergencia</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Toracoscopia (VATS)</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Drenajes mediastinales</span></label>
+                    </div>
+                </details>
+
+                <details class="glass group">
+                    <summary class="p-4 cursor-pointer flex justify-between items-center bg-gray-50 rounded-t-xl"><span class="font-bold text-xs uppercase text-navy"><i class="fa-solid fa-bone mr-2"></i> Extremidades, Raquimedular y Quemados</span><i class="fa-solid fa-chevron-down text-xs group-open:rotate-180 transition-all text-gray-500"></i></summary>
+                    <div class="p-4 pt-0 check-grid border-t border-gray-200 mt-2">
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Tabla rígida / espinal</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Rayos X / Equipos portátiles</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Intensificador de imágenes</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Endoprótesis vasculares</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Banco de tejidos</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="3"><span class="check-text">Equipo fijación externa</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Osteosíntesis básica / avanzada</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Equipo reparación tendones</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Medición presión compartimiento</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Equipo Fasciotomia / Amputación</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Cincha pélvica comercial/ artesanal</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Inmovilizadores laterales</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Férulas termoplásticas</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Sistema fijación transpedicular</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Apósitos estériles / antibióticos tópicos</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Escarotomía / Desbridamiento</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Profilaxis tétanos</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="1"><span class="check-text">Injerto autólogo/cadavéricos</span></label>
+                        <label class="check-item"><input type="checkbox" class="sc" data-pts="2"><span class="check-text">Dermatomo</span></label>
+                    </div>
+                </details>
+            </section>
+
+            <div id="contenedor-boton" class="text-center py-10">
+                <button type="button" id="btn-procesar" onclick="calcularAuditoria()" class="w-full bg-green-inst hover:bg-green-700 text-white p-5 rounded-xl font-black text-xl shadow-lg transition-all uppercase tracking-widest">
+                    <i class="fa-solid fa-clipboard-check mr-2"></i> PROCESAR AUDITORÍA Y GENERAR PDF
+                </button>
+            </div>
+        </form>
+
+        <div id="results" class="hidden mt-6 animate-in fade-in duration-500 pb-20">
+            <div id="card_resultado" class="glass p-10 border-2 bg-white">
+                
+                <div class="flex flex-col md:flex-row justify-between border-b border-gray-200 pb-8 mb-8">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Dictamen Institucional Guardado</p>
+                        <h2 id="res_institucion" class="text-4xl font-black text-navy mt-1">Hospital</h2>
+                        <p class="text-sm text-gray-600 mt-2"><i class="fa-solid fa-bed-pulse mr-2 text-green-inst"></i>Admisiones Trauma (>6h obs): <span id="res_admisiones" class="text-gray-900 font-bold">0</span></p>
+                    </div>
+                    <div class="text-right mt-6 md:mt-0 flex flex-col items-end">
+                        <span id="res_nivel" class="px-6 py-3 rounded-full font-black text-xl text-white tracking-widest shadow-md mb-2">BAJA COMPLEJIDAD</span>
+                        <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-2">PUNTAJE TÉCNICO INVENTARIO: <span id="res_score" class="text-navy text-lg ml-1 font-black">0</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-8">
+                    <p id="res_desc" class="text-sm text-gray-700 leading-relaxed font-medium">"Descripción..."</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="p-6 rounded-xl bg-white border border-gray-200 shadow-sm">
+                        <h3 class="text-xs font-black text-navy uppercase tracking-widest mb-4"><i class="fa-solid fa-lock text-gray-400 mr-2"></i>Brechas - Alta Complejidad</h3>
+                        <div id="lista_alta"></div>
+                    </div>
+
+                    <div class="p-6 rounded-xl bg-white border border-gray-200 shadow-sm">
+                        <h3 class="text-xs font-black text-orange-600 uppercase tracking-widest mb-4"><i class="fa-solid fa-lock text-gray-400 mr-2"></i>Brechas - Mediana Complejidad</h3>
+                        <div id="lista_mediana"></div>
+                    </div>
+                </div>
+
+                <div id="alerta_container" class="hidden mt-8 p-6 rounded-xl bg-red-50 border border-red-200">
+                    <h3 class="text-xs font-black text-red-700 uppercase tracking-widest mb-4"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Anotaciones y Barreras de Red</h3>
+                    <ul id="lista_alertas" class="text-sm space-y-2 text-gray-700 font-medium"></ul>
+                </div>
+
+                <div class="mt-10 p-5 border border-blue-200 bg-blue-50 rounded-xl text-xs text-blue-900 text-center font-semibold">
+                    Recomendación General de Auditoría: Es imperativo priorizar la capacitación en Protocolo de Trauma, Protocolo de Transfusión Masiva y Protocolo de Cirugía de Control de Daños institucional.
+                </div>
+            </div>
+
+            <div class="mt-8 text-center" id="boton-nueva-evaluacion">
+                <button onclick="window.location.reload()" class="text-navy font-bold hover:text-blue-700 underline underline-offset-4 transition-all"><i class="fa-solid fa-arrow-rotate-left mr-2"></i>Realizar nueva evaluación</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURACIÓN SUPABASE ---
+        const supabaseUrl = 'https://ycgcfphwwlkfwefgweda.supabase.co';
+        const supabaseKey = 'sb_publishable_qhaqqlpFPMSJwENamhIwgA_x0DhhR3n';
+        const clienteSupabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // --- 2. FUNCIONES DE LECTURA DE DATOS ---
+        function val(id) { 
+            const el = document.getElementById(id);
+            return el ? el.value === "1" : false; 
+        }
+        function isChecked(id) {
+            const el = document.getElementById(id);
+            return el ? el.checked : false;
+        }
+
+        // --- 3. LÓGICA PRINCIPAL ---
+        async function calcularAuditoria() {
+            // Efecto de carga en el botón
+            const btn = document.getElementById('btn-procesar');
+            const originalBtnHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> ENVIANDO DATOS Y GENERANDO PDF...';
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+
+            // Leer Datos básicos
+            const nombreInstitucion = document.getElementById('institucion').value || 'Institución No Definida';
+            const admisiones = document.getElementById('admisiones_6h').value;
+            
+            document.getElementById('res_institucion').innerText = nombreInstitucion;
+            document.getElementById('res_admisiones').innerText = admisiones || '0';
+
+            // Cálculo Score Insumos y JSON completo
+            let score = 0;
+            let inventarioCompleto = {};
+            document.querySelectorAll('.sc').forEach(el => {
+                let nombreInsumo = el.nextElementSibling.innerText.trim();
+                if(el.checked) {
+                    score += parseInt(el.dataset.pts);
+                    inventarioCompleto[nombreInsumo] = "Sí tiene"; 
+                } else {
+                    inventarioCompleto[nombreInsumo] = "No tiene"; 
+                }
+            });
+            document.getElementById('res_score').innerText = score;
+
+            let faltas_alta = [];
+            let faltas_mediana = [];
+            let anotaciones = [];
+
+            // Validaciones Alta Complejidad
+            if (!val('emergenciologo')) faltas_alta.push("Emergenciólogo por turno");
+            if (!val('cx_maxilo')) faltas_alta.push("Cirugía Maxilofacial");
+            if (!val('cx_vascular')) faltas_alta.push("Cirugía Vascular");
+            if (!val('cx_general')) faltas_alta.push("Cirujano General");
+            if (!val('neurocirujano')) faltas_alta.push("Neurocirujano");
+            if (!val('cx_trauma')) faltas_alta.push("Cirujano de Trauma");
+            if (!val('anestesiologo')) faltas_alta.push("Anestesiólogo");
+            if (!val('rad_interv')) faltas_alta.push("Radiología Intervencionista");
+            if (!val('fisiatria')) faltas_alta.push("Fisiatría (Horario Oficina)");
+            if (!val('fibrobroncoscopia')) faltas_alta.push("Fibrobroncoscopia");
+            if (!val('endoscopio')) faltas_alta.push("Endoscopio");
+            if (!val('transfusion_2h')) faltas_alta.push("Transfusión < 2hrs (GR, Plasma, Plaquetas)");
+            if (!val('ptm')) faltas_alta.push("Protocolo de Transfusión Masiva");
+            if (!isChecked('ventilador_transporte_inv')) faltas_alta.push("Ventilador de Transporte");
+            if (!val('salvador_celulas')) faltas_alta.push("Salvador de Células");
+            if (!val('embolizacion')) faltas_alta.push("Embolización y Hemodinamia");
+            if (!val('pic_craneotomia')) faltas_alta.push("Monitoreo PIC y Craneotomía");
+            if (!val('gran_quemado')) faltas_alta.push("Servicio del Gran Quemado");
+            if (!val('registro_trauma')) faltas_alta.push("Pertenecer al Registro de Trauma");
+
+            // Validaciones Mediana Complejidad
+            if (!val('banco_sangre') && !val('servicio_transfusional')) faltas_mediana.push("Servicio Transfusional o Banco de Sangre");
+            if (!val('esternotomia')) faltas_mediana.push("Esternotomía de Urgencias");
+            if (!val('laparotomia')) faltas_mediana.push("Laparotomía");
+            if (!val('endoscopio')) faltas_mediana.push("Endoscopio");
+            if (!val('registro_trauma')) faltas_mediana.push("Pertenecer al Registro de Trauma");
+            if (!val('cx_general')) faltas_mediana.push("Cirujano General por turno");
+            if (!val('protocolo_dcs')) faltas_mediana.push("Protocolo Control de Daños (DCS)");
+            if (!isChecked('toracotomia_inv')) faltas_mediana.push("Toracotomía de Resucitación");
+
+            // BARRERAS GENERALES Y ANOTACIONES
+            if (!val('registro_trauma')) anotaciones.push("ALERTA: La institución no pertenece al Registro de Trauma (Anotación obligatoria).");
+            if (!val('prog_calidad') || !val('prog_educacion') || !val('prog_investigacion') || !val('prevencion_trauma') || !val('modelo_atencion')) {
+                anotaciones.push("BARRERA: El Programa de Trauma Institucional está incompleto (Faltan subprogramas).");
+            }
+            if (val('quemado_inicial')) anotaciones.push("NOTA POSITIVA: Cuenta con protocolo de atención inicial del paciente quemado.");
+            if (!isChecked('manta_termica_inv')) anotaciones.push("ALERTA: Falta manta térmica en el servicio de urgencias.");
+            if (!val('reboa')) anotaciones.push("RECOMENDACIÓN: Se sugiere disponer de REBOA para optimizar capacidad institucional.");
+
+            // Decisión de Nivel
+            let nivel = "";
+            let colorClass = "";
+            let desc = "";
+
+            if (faltas_alta.length === 0 && faltas_mediana.length === 0) {
+                nivel = "ALTA COMPLEJIDAD";
+                colorClass = "bg-navy";
+                desc = "La institución cumple con todos los criterios de exclusión de talento humano, servicios y soporte para ser categorizada como Centro de Trauma Avanzado.";
+            } else if (faltas_mediana.length === 0) {
+                nivel = "MEDIANA COMPLEJIDAD";
+                colorClass = "bg-orange-500";
+                desc = "Institución apta para estabilización quirúrgica y control de daños (DCS). No alcanza la Alta Complejidad por exclusiones técnicas específicas o falta de especialistas.";
+            } else {
+                nivel = "BAJA COMPLEJIDAD";
+                colorClass = "bg-gray-600";
+                desc = "Institución enfocada en atención inicial y reanimación. Presenta criterios excluyentes críticos que limitan su nivel de complejidad en trauma (ej: falta cirujano, falta DCS o laparotomía).";
+            }
+
+            document.getElementById('res_nivel').innerText = nivel;
+            document.getElementById('res_nivel').className = `px-6 py-3 rounded-full font-black text-xl text-white tracking-widest shadow-md mb-2 ${colorClass}`;
+            document.getElementById('res_desc').innerText = `"${desc}"`;
+
+            // Listas
+            const renderList = (arr, elementId) => {
+                const el = document.getElementById(elementId);
+                if (arr.length === 0) {
+                    el.innerHTML = `<p class="text-sm text-green-600 font-bold"><i class="fa-solid fa-check mr-2"></i>Cumple todos los criterios excluyentes.</p>`;
+                } else {
+                    el.innerHTML = `<ul class="text-sm space-y-2 text-gray-600 font-medium">` + arr.map(item => `<li><i class="fa-solid fa-xmark text-red-500 mr-2"></i>${item}</li>`).join('') + `</ul>`;
+                }
+            };
+            renderList(faltas_alta, 'lista_alta');
+            renderList(faltas_mediana, 'lista_mediana');
+
+            // Alertas render
+            const alertaContainer = document.getElementById('alerta_container');
+            const listaAlertas = document.getElementById('lista_alertas');
+            if (anotaciones.length > 0) {
+                alertaContainer.classList.remove('hidden');
+                listaAlertas.innerHTML = anotaciones.map(item => {
+                    let icon = item.includes("POSITIVA") ? '<i class="fa-solid fa-plus text-green-600 mr-2"></i>' : '<i class="fa-solid fa-circle-exclamation text-red-600 mr-2"></i>';
+                    let textClass = item.includes("POSITIVA") ? 'text-green-700' : 'text-red-700';
+                    return `<li class="${textClass}">${icon}${item}</li>`;
+                }).join('');
+            } else {
+                alertaContainer.classList.add('hidden');
+            }
+
+            // --- 4. PREPARAR Y ENVIAR DATOS A SUPABASE ---
+            const datosGuardar = {
+                institucion: nombreInstitucion,
+                admisiones_6h: admisiones ? parseInt(admisiones) : 0,
+                complejidad_actual: document.getElementById('complejidad_actual').value,
+                zona: document.getElementById('zona').value,
+                camas_hospitalizacion: parseInt(document.getElementById('camas_hospitalizacion').value) || 0,
+                camas_obs_urgencias: parseInt(document.getElementById('camas_obs_urgencias').value) || 0,
+                camas_uci_adultos: parseInt(document.getElementById('val_uci').value) || 0,
+                
+                medicos_generales: parseInt(document.getElementById('medicos_generales').value) || 0,
+                enfermeros_jefes: parseInt(document.getElementById('enfermeros_jefes').value) || 0,
+                auxiliares_enfermeria: parseInt(document.getElementById('auxiliares_enfermeria').value) || 0,
+                camilleros: parseInt(document.getElementById('camilleros').value) || 0,
+                terapeutas_respiratorios: parseInt(document.getElementById('terapeutas_respiratorios').value) || 0,
+
+                cx_general: val('cx_general'),
+                cx_trauma: val('cx_trauma'),
+                emergenciologo: val('emergenciologo'),
+                neurocirujano: val('neurocirujano'),
+                cx_vascular: val('cx_vascular'),
+                cx_maxilo: val('cx_maxilo'),
+                anestesiologo: val('anestesiologo'),
+                fisiatria: val('fisiatria'),
+                rad_interv: val('rad_interv'),
+                fibrobroncoscopia: val('fibrobroncoscopia'),
+                endoscopio: val('endoscopio'),
+                rehabilitacion: val('rehabilitacion'),
+                servicio_transfusional: val('servicio_transfusional'),
+                banco_sangre: val('banco_sangre'),
+                transfusion_2h: val('transfusion_2h'),
+                esternotomia: val('esternotomia'),
+                laparotomia: val('laparotomia'),
+                reboa: val('reboa'),
+                salvador_celulas: val('salvador_celulas'),
+                embolizacion: val('embolizacion'),
+                pic_craneotomia: val('pic_craneotomia'),
+                gran_quemado: val('gran_quemado'),
+                registro_trauma: val('registro_trauma'),
+                protocolo_dcs: val('protocolo_dcs'),
+                codigo_trauma: val('h_cod'),
+                ptm: val('ptm'),
+                quemado_inicial: val('quemado_inicial'),
+                prog_calidad: val('prog_calidad'),
+                prog_educacion: val('prog_educacion'),
+                prog_investigacion: val('prog_investigacion'),
+                prevencion_trauma: val('prevencion_trauma'),
+                modelo_atencion: val('modelo_atencion'),
+
+                puntaje_inventario: score,
+                nivel_asignado: nivel,
+                detalle_inventario: inventarioCompleto,
+                alertas_generadas: anotaciones,
+                brechas_detectadas: { alta: faltas_alta, mediana: faltas_mediana }
+            };
+
+            try {
+                // Enviar la información
+                const { error } = await clienteSupabase.from('evaluaciones_tsc').insert([datosGuardar]);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                // Si guarda correctamente, mostrar los resultados
+                document.getElementById('results').classList.remove('hidden');
+                
+                // Ocultar elementos innecesarios para el PDF
+                document.getElementById('contenedor-boton').classList.add('hidden');
+                document.getElementById('boton-nueva-evaluacion').classList.add('hidden');
+
+                // ABRIR TODOS LOS ACORDEONES PARA QUE SALGAN EN EL PDF
+                document.querySelectorAll('details').forEach(det => det.open = true);
+
+                // GENERACIÓN DEL PDF AUTOMÁTICO
+                const elementoParaPDF = document.getElementById('contenedor-pdf');
+                const nombreArchivo = `Auditoria_Trauma_${nombreInstitucion.replace(/\s+/g, '_')}.pdf`;
+
+                const opcionesPDF = {
+                    margin:       0.3,
+                    filename:     nombreArchivo,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, scrollY: 0 },
+                    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+                };
+
+                html2pdf().set(opcionesPDF).from(elementoParaPDF).save().then(() => {
+                    // DESPUÉS de guardar el PDF, ocultamos el formulario para que el usuario solo vea el resultado
+                    document.getElementById('auditForm').classList.add('hidden');
+                    document.getElementById('boton-nueva-evaluacion').classList.remove('hidden');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+
+            } catch (err) {
+                console.error('Error guardando en BD:', err);
+                alert("Hubo un problema guardando en Supabase. Detalles en consola.");
+                
+                // Restaurar botón si falla
+                btn.innerHTML = originalBtnHtml;
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+            }
+        }
+    </script>
+</body>
+</html>
